@@ -1,3 +1,7 @@
+Make a project calling AI services with load balancer API gateway and queue
+
+
+
 api-gateway-project/
 │
 ├── gateway/
