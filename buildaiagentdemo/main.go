@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
+	"github.com/fatih/color"
 	"github.com/joho/godotenv"
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/option"
@@ -43,19 +46,61 @@ func main() {
 	// model := "google/gemini-2.0-flash-001"
 	model := "openai/gpt-4o-mini"
 
-	messages = append(messages, openai.UserMessage(("what model are you??")))
+	// messages = append(messages, openai.UserMessage(("what model are you??")))
 
 	params := openai.ChatCompletionNewParams{
 		Model:    model,
 		Messages: messages,
 	}
 
-	res, err := client.Chat.Completions.New(ctx, params)
+	scanner := bufio.NewScanner(os.Stdin)
 
-	if err != nil {
-		log.Fatal(err)
+	fmt.Println(color.WhiteString(
+		fmt.Sprintf("model: %s", model),
+	))
+
+	for {
+		fmt.Println(color.CyanString("\n> "))
+
+		if !scanner.Scan() {
+			break
+		}
+
+		input := strings.TrimSpace(scanner.Text())
+
+		if input == "clear" {
+			fmt.Print("\033[H\033[]2J")
+			continue
+		}
+
+		if input == "exit" {
+			fmt.Println("goodbye")
+			break
+		}
+
+		params.Messages = append(params.Messages, openai.UserMessage(input))
+
+		res, err := client.Chat.Completions.New(ctx, params)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+		output := res.Choices[0].Message.Content
+
+		fmt.Println(color.YellowString(output))
+
+		params.Messages = append(params.Messages, openai.AssistantMessage(output))
+
+		count := len(params.Messages)
+
+		fmt.Println(color.MagentaString(
+			fmt.Sprintf("count: %d", count),
+		))
+
+		if count >= 10 {
+			params.Messages = params.Messages[count-4:]
+			fmt.Println("history refreshed!")
+		}
 	}
-
-	fmt.Println(res.Choices[0].Message.Content)
 
 }
